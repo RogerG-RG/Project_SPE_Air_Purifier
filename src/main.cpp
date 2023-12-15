@@ -17,7 +17,10 @@
 
 float pm10, pm25;
 int error; 
-char apName[] = "ESP32 Air Purifier";
+char apName[] = "AirBox";
+const int PWM_CHANNEL = 0;
+const int PWM_FREQ = 750;
+const int PWM_RESOLUTION = 8;
 
 WiFiManager wifiManager;
 bool connectionStatus = false;
@@ -38,6 +41,8 @@ void fanSpeed(void * parameter);
 void setup() {
   pinMode(WIFI_RESET_BUTTON_PIN, INPUT_PULLUP);
   pinMode(FAN_PWM_CTRL_PIN, OUTPUT);
+  ledcSetup(PWM_CHANNEL, PWM_FREQ, PWM_RESOLUTION);
+  ledcAttachPin(FAN_PWM_CTRL_PIN, PWM_CHANNEL);
 
   my_sds.begin(&port); // RX, TX, baudrate, PWM 2.5, PWM 10
 
@@ -51,7 +56,7 @@ void setup() {
   display.setTextSize(1);
   display.setTextColor(WHITE);
 
-  xTaskCreate(fanSpeed, "Fan Speed 25", 10000, NULL, 1, NULL);
+  xTaskCreate(fanSpeed, "Fan Speed", 10000, NULL, 1, NULL);
   xTaskCreate(sensorRead, "Sensor Read", 10000, NULL, 1, NULL);
   xTaskCreate(wifiConnect, "Wifi Connect", 10000, NULL, 1, NULL);
   xTaskCreate(timedOut, "Timed Out", 10000, NULL, 1, NULL);
@@ -60,11 +65,13 @@ void setup() {
 
 void fanSpeed(void * parameter) {
   while(1)  {
-    analogWrite(FAN_PWM_CTRL_PIN, 64);
+    Serial.println("Changing fan speed");
+    ledcWrite(0, 128);
     delay(3000);
-    analogWrite(FAN_PWM_CTRL_PIN, 26);
+    ledcWrite(0, 64);
     delay(3000);
-    analogWrite(FAN_PWM_CTRL_PIN, 0);
+    ledcWrite(0, 0);
+    Serial.println("Fan speed changed");
     vTaskDelay(pdMS_TO_TICKS(3000));
   }
 }
@@ -129,7 +136,10 @@ void loop() {
     wifiManager.resetSettings();
     ESP.restart();
   }
-
+  // digitalWrite(ONBOARD_LED_PIN, HIGH);
+  // delay(1000);
+  // digitalWrite(ONBOARD_LED_PIN, LOW);
+  // delay(1000);
   // display.clearDisplay();
   // display.setCursor(0,0);
   // display.print("Hello World!");
